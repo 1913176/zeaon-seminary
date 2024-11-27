@@ -1,6 +1,5 @@
 import { db, storage } from './firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs } from 'firebase/firestore';
-import { uploadToVimeo } from './externalServices';
 import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
@@ -8,14 +7,25 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 export const uploadFile = async (file, type) => {
   let fileURL = '';
   try {
-    if (type === 'video') {
-      fileURL = await uploadToVimeo(file);
-    } else if (['image', 'document', 'pdf', 'ppt', 'audio'].includes(type)) {
-      const fileRef = ref(storage, `${type}s/${uuidv4()}_${file.name}`);
-      await uploadBytes(fileRef, file);
-      fileURL = await getDownloadURL(fileRef);
-      console.log('File uploaded to Firebase Storage, URL:', fileURL);
+    const supportedTypes = {
+      video: 'videos',
+      image: 'images',
+      document: 'documents',
+      pdf: 'documents',
+      ppt: 'presentations',
+      audio: 'audios',
+    };
+
+    const folder = supportedTypes[type];
+    if (!folder) {
+      throw new Error(`Unsupported file type: ${type}`);
     }
+
+    const fileRef = ref(storage, `${folder}/${uuidv4()}_${file.name}`);
+    await uploadBytes(fileRef, file);
+    fileURL = await getDownloadURL(fileRef);
+    console.log(`File uploaded to Firebase Storage (${folder} folder), URL:`, fileURL);
+
     return fileURL;
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -147,12 +157,27 @@ export const addChapterToCourse = async (degreeId, courseId, chapterData) => {
   }
 };
 
-// Add a lesson to a chapter
-export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonData) => {
+export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonData, file) => {
   try {
     const degreeRef = doc(db, 'degrees', degreeId);
     const degreeSnapshot = await getDoc(degreeRef);
+
+    if (!degreeSnapshot.exists()) {
+      console.error('No such degree found with id:', degreeId);
+      return false;
+    }
+
     const degreeData = degreeSnapshot.data();
+
+    let fileMetadata = null;
+    if (file) {
+      const fileType = file.type.split('/')[0]; 
+      fileMetadata = {
+        url: await uploadFile(file, fileType),
+        type: fileType,
+        name: file.name,
+      };
+    }
 
     const updatedCourses = degreeData.courses.map((course) => {
       if (course.course_id === courseId) {
@@ -162,6 +187,7 @@ export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonDa
               lesson_id: uuidv4(),
               title: lessonData.title,
               description: lessonData.description,
+              file: fileMetadata, 
               test: lessonData.test ? createTestObject(lessonData.test) : null,
             };
             return { ...chapter, lessons: [...(chapter.lessons || []), newLesson] };
@@ -181,6 +207,7 @@ export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonDa
     return false;
   }
 };
+
 
 // Edit Chapter
 export const editChapter = async (degreeId, courseId, chapterId, updatedChapterData) => {
@@ -209,19 +236,43 @@ export const editChapter = async (degreeId, courseId, chapterId, updatedChapterD
 };
 
 // Edit Lesson
-export const editLesson = async (degreeId, courseId, chapterId, lessonId, updatedLessonData) => {
+export const editLesson = async (degreeId, courseId, chapterId, lessonId, updatedLessonData, newFile) => {
   try {
     const degreeRef = doc(db, 'degrees', degreeId);
     const degreeSnapshot = await getDoc(degreeRef);
+
+    if (!degreeSnapshot.exists()) {
+      console.error('No such degree found with id:', degreeId);
+      return false;
+    }
+
     const degreeData = degreeSnapshot.data();
+    let newFileMetadata = null;
+    if (newFile) {
+      const fileType = newFile.type.split('/')[0];
+      newFileMetadata = {
+        url: await uploadFile(newFile, fileType),
+        type: fileType,
+        name: newFile.name,
+      };
+    }
 
     const updatedCourses = degreeData.courses.map((course) => {
       if (course.course_id === courseId) {
         const updatedChapters = course.chapters.map((chapter) => {
           if (chapter.chapter_id === chapterId) {
-            const updatedLessons = chapter.lessons.map((lesson) =>
-              lesson.lesson_id === lessonId ? { ...lesson, ...updatedLessonData, updatedAt: Date.now() } : lesson
-            );
+            const updatedLessons = chapter.lessons.map((lesson) => {
+              if (lesson.lesson_id === lessonId) {
+                return {
+                  ...lesson,
+                  title: updatedLessonData.title || lesson.title,
+                  description: updatedLessonData.description || lesson.description,
+                  file: newFileMetadata || lesson.file, 
+                  test: updatedLessonData.test || lesson.test,
+                };
+              }
+              return lesson;
+            });
             return { ...chapter, lessons: updatedLessons };
           }
           return chapter;
@@ -232,13 +283,14 @@ export const editLesson = async (degreeId, courseId, chapterId, lessonId, update
     });
 
     await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Lesson updated successfully!');
+    console.log('Lesson successfully updated!');
     return true;
   } catch (error) {
     console.error('Error updating lesson:', error);
     return false;
   }
 };
+
 
 // Edit Test
 export const editTest = async (degreeId, courseId, chapterId, lessonId, testId, updatedTestData) => {
@@ -303,13 +355,27 @@ export const deleteLesson = async (degreeId, courseId, chapterId, lessonId) => {
   try {
     const degreeRef = doc(db, 'degrees', degreeId);
     const degreeSnapshot = await getDoc(degreeRef);
+
+    if (!degreeSnapshot.exists()) {
+      console.error('No such degree found with id:', degreeId);
+      return false;
+    }
+
     const degreeData = degreeSnapshot.data();
 
     const updatedCourses = degreeData.courses.map((course) => {
       if (course.course_id === courseId) {
         const updatedChapters = course.chapters.map((chapter) => {
           if (chapter.chapter_id === chapterId) {
-            const updatedLessons = chapter.lessons.filter((lesson) => lesson.lesson_id !== lessonId);
+            const updatedLessons = chapter.lessons.filter((lesson) => {
+              if (lesson.lesson_id === lessonId) {
+                if (lesson.file?.url) {
+                  deleteFile(lesson.file.url); // Assuming deleteFile is a function to remove files from storage
+                }
+                return false; 
+              }
+              return true;
+            });
             return { ...chapter, lessons: updatedLessons };
           }
           return chapter;
@@ -320,7 +386,7 @@ export const deleteLesson = async (degreeId, courseId, chapterId, lessonId) => {
     });
 
     await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Lesson deleted successfully!');
+    console.log('Lesson successfully deleted!');
     return true;
   } catch (error) {
     console.error('Error deleting lesson:', error);
