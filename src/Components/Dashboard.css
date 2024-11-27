@@ -1,0 +1,29 @@
+.dashboard {
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebarBox {
+  width: 75px;
+  /* width: 100px; */
+  background-color: white;
+}
+
+.outletBox {
+  flex: 1;
+  background-color: white;
+}
+
+@media (max-width: 1125px) {
+  .sidebarBox {
+    width: 65px;
+    /* width: 100px; */
+  }
+}
+
+@media (max-width: 835px) {
+  .sidebarBox {
+    width: 40px;
+    width: 56px;
+  }
+}

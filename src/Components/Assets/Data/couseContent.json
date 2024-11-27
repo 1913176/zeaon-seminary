@@ -1,0 +1,52 @@
+[
+    {
+        "description":"test",
+        "price":"500",
+        "id":"3It0TTf646DwWd9lYhuv",
+        "thumbnail":null,
+        "packages":[
+            {
+                "updateIndex":0,
+                "name":"test course",
+                "features":["sub-test"]
+            }
+        ],
+        "domain":"New Degree Update",
+        "overviewPoints":[]
+    },
+    {
+        "domain":"second test Degree",
+        "overviewPoints":[],
+        "description":"",
+        "thumbnail":null,
+        "packages":
+        [
+            {
+                "updateIndex":0,
+                "features":["sub-test-2"],
+                "name":"test course-2"
+            }
+        ],
+        "price":"5000"
+    },
+    {
+        "description":"test",
+        "price":"5000",
+        "id":"3It0TTf646DwWd9lYmbv",
+        "thumbnail":null,
+        "packages":[
+            {
+                "updateIndex":0,
+                "name":"test course 1",
+                "features":["sub-test 1"]
+            },
+            {
+                "updateIndex":0,
+                "name":"test course 2",
+                "features":["sub-test 2"]
+            }
+        ],
+        "domain":"test degree",
+        "overviewPoints":[]
+    }
+]

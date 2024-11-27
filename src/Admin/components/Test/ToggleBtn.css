@@ -1,0 +1,19 @@
+.toggle-btn {
+    position: relative;
+    width: 4rem;
+    height: 2rem;
+    border-radius: 3rem;
+    background: #a9c5fd;
+    cursor: pointer;
+}
+
+.btn-circle {
+    position: absolute;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #2851e4;
+    top: 12.5%;
+    transform: translateY(-50%);
+    transition: transform 200ms ease-in; 
+}

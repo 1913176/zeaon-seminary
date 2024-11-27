@@ -1,0 +1,106 @@
+[
+  {
+    "id": 1,
+    "title": "Biblical Studies and Exegesis",
+    "description": "Deepen your understanding of biblical texts through critical analysis and interpretation",
+    "image": "imagenotxt.png",
+    "lessons": [
+      "Old Testament Studies",
+      "New Testament Studies",
+      "Hermeneutics",
+      "Biblical Languages",
+      "Exegetical Methods"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Theology and Doctrine",
+    "description": "Explore the foundational beliefs and doctrines of the Christian faith",
+    "image": "imagenotxt2.png",
+    "lessons": [
+      "Systematic Theology",
+      "Historical Theology",
+      "Christology",
+      "Pneumatology",
+      "Ecclesiology"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Church History and Tradition",
+    "description": "Understand the historical development of the church and its traditions",
+    "image": "imagenotxt3.png",
+    "lessons": [
+      "Early Church History",
+      "Medieval Church",
+      "Reformation",
+      "Modern Church Movements",
+      "Denominational Histories"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Pastoral Care and Counseling",
+    "description": "Equip yourself with skills for providing pastoral care and counseling",
+    "image": "imagenotxt4.png",
+    "lessons": [
+      "Foundations of Pastoral Care",
+      "Counseling Techniques",
+      "Crisis Intervention",
+      "Spiritual Direction",
+      "Ethics in Counseling"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Christian Ethics and Moral Theology",
+    "description": "Examine ethical issues and moral theology from a Christian perspective",
+    "image": "imagenotxt3.png",
+    "lessons": [
+      "Principles of Christian Ethics",
+      "Moral Theology",
+      "Social Justice",
+      "Bioethics",
+      "Environmental Ethics"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Homiletics and Preaching",
+    "description": "Learn the art and practice of preaching and delivering sermons",
+    "image": "imagenotxt.png",
+    "lessons": [
+      "Introduction to Homiletics",
+      "Sermon Preparation",
+      "Preaching Styles",
+      "Expository Preaching",
+      "Communicating the Gospel"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Mission and Evangelism",
+    "description": "Prepare for global mission work and effective evangelism strategies",
+    "image": "imagenotxt4.png",
+    "lessons": [
+      "History of Christian Mission",
+      "Cross-Cultural Ministry",
+      "Evangelism Techniques",
+      "Church Planting",
+      "Global Missions"
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Spiritual Formation and Discipleship",
+    "description": "Focus on personal spiritual growth and guiding others in discipleship",
+    "image": "imagenotxt2.png",
+    "lessons": [
+      "Spiritual Disciplines",
+      "Prayer and Meditation",
+      "Discipleship Models",
+      "Mentorship in Ministry",
+      "Community Building"
+    ]
+  }
+]
