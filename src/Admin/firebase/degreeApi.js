@@ -2,7 +2,7 @@ import { db, storage } from './firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-
+import { getMediaDuration } from './mediaUtils';
 
 export const uploadFile = async (file, type) => {
   let fileURL = '';
@@ -115,7 +115,7 @@ export const addCourseToDegree = async (degreeId, courseData) => {
       finalTest: courseData.finalTest ? createTestObject(courseData.finalTest) : null, // Final test for the course
     };
 
-    const updatedCourses = [...degreeData.courses, newCourse]; // Add the new course
+    const updatedCourses = [...degreeData.courses, newCourse];
 
     await updateDoc(degreeRef, { courses: updatedCourses });
     console.log('Course successfully added to degree!');
@@ -172,13 +172,21 @@ export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonDa
     let fileMetadata = null;
     if (file) {
       const fileType = file.type.split('/')[0]; 
+      const fileUrl = await uploadFile(file, fileType); 
+
+      let duration = null;
+      if (fileType === 'video' || fileType === 'audio') {
+        duration = await getMediaDuration(file); 
+      }
+
       fileMetadata = {
-        url: await uploadFile(file, fileType),
-        type: fileType,
-        name: file.name,
+        url: fileUrl, 
+        type: fileType, 
+        name: file.name, 
+        duration, 
+        link: fileUrl,
       };
     }
-
     const updatedCourses = degreeData.courses.map((course) => {
       if (course.course_id === courseId) {
         const updatedChapters = course.chapters.map((chapter) => {
@@ -248,13 +256,21 @@ export const editLesson = async (degreeId, courseId, chapterId, lessonId, update
 
     const degreeData = degreeSnapshot.data();
     let newFileMetadata = null;
+    let newDuration = null;
+
     if (newFile) {
       const fileType = newFile.type.split('/')[0];
+      const fileUrl = await uploadFile(newFile, fileType);
+
       newFileMetadata = {
-        url: await uploadFile(newFile, fileType),
+        url: fileUrl,
         type: fileType,
         name: newFile.name,
       };
+
+      if (fileType === 'video' || fileType === 'audio') {
+        newDuration = await getMediaDuration(fileUrl);
+      }
     }
 
     const updatedCourses = degreeData.courses.map((course) => {
@@ -267,7 +283,8 @@ export const editLesson = async (degreeId, courseId, chapterId, lessonId, update
                   ...lesson,
                   title: updatedLessonData.title || lesson.title,
                   description: updatedLessonData.description || lesson.description,
-                  file: newFileMetadata || lesson.file, 
+                  file: newFileMetadata || lesson.file,
+                  duration: newDuration || lesson.duration, 
                   test: updatedLessonData.test || lesson.test,
                 };
               }
@@ -370,7 +387,7 @@ export const deleteLesson = async (degreeId, courseId, chapterId, lessonId) => {
             const updatedLessons = chapter.lessons.filter((lesson) => {
               if (lesson.lesson_id === lessonId) {
                 if (lesson.file?.url) {
-                  deleteFile(lesson.file.url); // Assuming deleteFile is a function to remove files from storage
+                  deleteFile(lesson.file.url); 
                 }
                 return false; 
               }
