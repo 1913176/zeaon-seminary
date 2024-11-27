@@ -6,7 +6,7 @@ import Trash from "../../assets/Images/trash.png";
 import Edit from "../../assets/Images/edit.png";
 import LoadingGif from "../../assets/gif/loading.gif";
 import Upload from "../../assets/Images/upload.png";
-import { uploadFile } from '../../firebase/lessonApi';
+import { uploadFile } from '../../firebase/degreeApi';
 import LessonTest from './LessonTest';
 import { toast } from 'react-toastify';
 import { addLessonToChapter, deleteLesson, editLesson } from '../../firebase/degreeApi';

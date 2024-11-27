@@ -7,7 +7,7 @@ import Nolesson from "../../../assets/Images/no-lesson-illustration.svg";
 import BackIcon from "../../../assets/Images/left-arrow.png";
 import { useNavigate } from "react-router-dom";
 import NewLesson from "../new-degree/NewLesson";
-import { deleteDegree, editDegree } from "../../../firebase/lessonApi";
+import { deleteDegree, editDegree } from "../../../firebase/degreeApi";
 import { toast } from "react-toastify";
 
 const Edit = ({ courseDetails }) => {
