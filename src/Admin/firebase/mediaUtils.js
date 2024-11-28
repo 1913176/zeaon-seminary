@@ -1,4 +1,4 @@
-const getMediaDuration = (file) => {
+export const getMediaDuration = (file) => {
     return new Promise((resolve, reject) => {
       const mediaElement = document.createElement(
         file.type.startsWith('video') ? 'video' : 'audio'

@@ -53,10 +53,17 @@ const createTestObject = (testData) => {
 export const addDegree = async (degreeData) => {
   try {
     const degreeId = uuidv4();
+    let thumbnailUrl = '';
+
+    // Upload thumbnail if provided
+    if (degreeData.thumbnail) {
+      thumbnailUrl = await uploadFile(degreeData.thumbnail, 'image');
+    }
+
     const courses = await Promise.all(degreeData.courses.map(async (course) => {
-      let thumbnailUrl = '';
+      let courseThumbnailUrl = '';
       if (course.thumbnail) {
-        thumbnailUrl = await uploadFile(course.thumbnail, 'image');
+        courseThumbnailUrl = await uploadFile(course.thumbnail, 'image');
       }
 
       let finalTest = null;
@@ -68,7 +75,7 @@ export const addDegree = async (degreeData) => {
         course_id: uuidv4(),
         title: course.title,
         description: course.description,
-        image: course.image || '',
+        image: courseThumbnailUrl || '',
         chapters: [], // Placeholder for chapters
         finalTest: finalTest, // Final test for the course
       };
@@ -76,10 +83,10 @@ export const addDegree = async (degreeData) => {
 
     await addDoc(collection(db, 'degrees'), {
       id: degreeId,
-      degree_title: degreeData.degree_title,
+      degree_title: degreeData.name, 
       description: degreeData.description,
       price: degreeData.price,
-      thumbnail: degreeData.thumbnail || null,
+      thumbnail: thumbnailUrl || null,
       courses,
       createdAt: Date.now(),
     });
@@ -91,6 +98,8 @@ export const addDegree = async (degreeData) => {
     return null;
   }
 };
+
+
 
 // Add a course to an existing degree
 

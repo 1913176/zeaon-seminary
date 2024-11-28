@@ -2,25 +2,18 @@ import React, { useEffect, useState } from "react";
 import Nolesson from "../../../assets/Images/no-lesson-illustration.svg";
 import { useNavigate } from "react-router-dom";
 import NewChapter from "./NewChapter";
-import { addDegree } from "../../../firebase/degreeApi";
+import { addDegree } from "../../../firebase/degreeApi"; // Firebase API integration for adding a degree
 import { toast } from "react-toastify";
 
 const NewDegree = () => {
   const [popupOpen, setPopupOpen] = useState({ open: false, data: null });
 
-  const [currentOverview, setCurrentOverview] = useState({
-    heading: "",
-    content: "",
-    updateIndex: null,
-  });
-
   const navigate = useNavigate();
-  const [courseData, setCourseData] = useState({
+  const [degreeData, setDegreeData] = useState({
     name: "",
     description: "",
     price: null,
     thumbnail: null,
-    overviewPoints: [],
     courses: [],
   });
 
@@ -29,49 +22,46 @@ const NewDegree = () => {
   }, [popupOpen]);
 
   const handledirectInput = (type, value) => {
-    setCourseData({ ...courseData, [type]: value });
+    setDegreeData({ ...degreeData, [type]: value });
   };
 
   const handleDeleteCourse = (courseIndex) => {
-    const newCourseData = [...courseData.courses];
-    newCourseData.splice(courseIndex, 1);
-    setCourseData({ ...courseData, courses: newCourseData });
+    const newCourses = [...degreeData.courses];
+    newCourses.splice(courseIndex, 1);
+    setDegreeData({ ...degreeData, courses: newCourses });
   };
 
   const addLessontoCourse = (lesson) => {
     console.log(lesson);
-    const newCourse = [...courseData.courses];
+    const newCourses = [...degreeData.courses];
     if (lesson.updateIndex === null) {
-      newCourse.push({
+      newCourses.push({
         ...lesson,
-        updateIndex: newCourse?.length > 0 ? newCourse?.length : 0,
+        updateIndex: newCourses?.length > 0 ? newCourses?.length : 0,
       });
-      setCourseData({ ...courseData, courses: newCourse });
+      setDegreeData({ ...degreeData, courses: newCourses });
     } else {
-      newCourse[lesson.updateIndex] = lesson;
-      setCourseData({ ...courseData, courses: newCourse });
+      newCourses[lesson.updateIndex] = lesson;
+      setDegreeData({ ...degreeData, courses: newCourses });
     }
     setPopupOpen({ open: false });
   };
 
-  const uploadCourse = async () => {
-    if (
-      courseData.name &&
-      courseData.price
-    ) {
-      const response = await toast.promise(addDegree(courseData), {
-        pending: "adding degree...",
-        success: "Degree added successfully",
-        error: "An error occurred while adding new Degree"
+  const uploadDegree = async () => {
+    if (degreeData.name && degreeData.price && degreeData.description) {
+      const response = await toast.promise(addDegree(degreeData), {
+        pending: "Adding degree...",
+        success: "Degree added successfully!",
+        error: "An error occurred while adding the new degree.",
       });
       console.log(response);
-      if (response) navigate('/admin');
+      if (response) navigate("/admin");
     } else {
-      toast.error('Please add at least one course and degree details');
+      toast.error("Please fill in all degree details, including at least one course.");
     }
   };
 
-  console.log(courseData);
+  console.log(degreeData);
 
   return (
     <div
@@ -84,14 +74,14 @@ const NewDegree = () => {
         <div>
           <h3 className="course-new-title">Create New Degree</h3>
           <p className="course-new-discription">
-            Create new degre and lets publish
+            Create a new degree and let's publish!
           </p>
         </div>
         <div className="top-btn-cnt">
-          <div className=" course-delete-btn " onClick={() => navigate("/")}>
+          <div className="course-delete-btn" onClick={() => navigate("/")}>
             Cancel
           </div>
-          <div className="add-new-lesson-btn" onClick={() => uploadCourse()}>
+          <div className="add-new-lesson-btn" onClick={uploadDegree}>
             Save Degree
           </div>
         </div>
@@ -102,9 +92,20 @@ const NewDegree = () => {
             <p>Enter degree Name</p>
             <input
               type="text"
-              value={courseData?.name}
+              value={degreeData.name}
               className="name-input"
               onChange={(e) => handledirectInput("name", e.target.value)}
+            />
+          </div>
+
+          <div className="course-name-cnt">
+            <p>Enter degree Description</p>
+            <textarea
+              value={degreeData.description}
+              className="name-input"
+              rows="4"
+              placeholder="Enter degree description here..."
+              onChange={(e) => handledirectInput("description", e.target.value)}
             />
           </div>
 
@@ -113,7 +114,7 @@ const NewDegree = () => {
               <p>Enter degree price</p>
               <input
                 type="number"
-                value={courseData.price !== null ? courseData.price : ""}
+                value={degreeData.price !== null ? degreeData.price : ""}
                 className="name-input price-input"
                 placeholder="₹"
                 onChange={(e) => handledirectInput("price", e.target.value)}
@@ -124,8 +125,10 @@ const NewDegree = () => {
             <p>Upload degree thumbnail</p>
             <input
               type="file"
-              accept="png,svg"
-              onChange={(e) => setCourseData({ ...courseData, thumbnail: e.target.files[0] })}
+              accept="image/png, image/svg+xml"
+              onChange={(e) =>
+                setDegreeData({ ...degreeData, thumbnail: e.target.files[0] })
+              }
               className="styled-input"
             />
           </div>
@@ -142,19 +145,20 @@ const NewDegree = () => {
           </div>
 
           <div className="lesson-list-cnt">
-            {courseData.courses?.length > 0 ? (
-              courseData?.courses?.map((lesson, index) => (
+            {degreeData.courses?.length > 0 ? (
+              degreeData.courses.map((course, index) => (
                 <div
+                  key={index}
                   className="lesson"
-                  onClick={() => setPopupOpen({ open: true, data: lesson })}
+                  onClick={() => setPopupOpen({ open: true, data: course })}
                 >
                   <h1 className="lesson-number">{index + 1}</h1>
                   <div className="lesson-title-cnt">
-                    <h3 className="lesson-title">{lesson?.name}</h3>
+                    <h3 className="lesson-title">{course?.name}</h3>
                   </div>
                   <ul className="lesson-subtitle-cnt">
-                    {lesson?.lessons?.map((sublesson) => (
-                      <li>
+                    {course?.lessons?.map((sublesson, idx) => (
+                      <li key={idx}>
                         <p className="lesson-subtitle">{sublesson?.name}</p>
                       </li>
                     ))}

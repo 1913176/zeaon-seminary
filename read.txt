@@ -1,0 +1,6 @@
+import { uploadFile, addDegree } from "../../../firebase/degreeApi";
+import { addCourseToDegree, addChapterToCourse, addLessonToChapter } from "../../../firebase/degreeApi";
+import { editChapter, editLesson, editTest } from "../../../firebase/degreeApi";
+import { deleteChapter, deleteLesson, deleteTest } from "../../../firebase/degreeApi";
+import { getAllDegrees, getDegreeById, getCourseById } from "../../../firebase/degreeApi";
+import { editCourse, deleteCourse, editDegree } from "../../../firebase/degreeApi";
