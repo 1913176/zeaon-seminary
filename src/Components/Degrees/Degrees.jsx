@@ -103,7 +103,7 @@ const Degrees = () => {
     let totalWords = 0;
     let courseList = [];
 
-    for (let i = 0; i < courses.length && i < 3; i++) {
+    for (let i = 0; i < courses?.length && i < 3; i++) {
       const course = courses[i];
       if (!course.title) continue;
       const wordCount = course.title.split(" ").length;
@@ -237,7 +237,7 @@ const Degrees = () => {
                     {getCourseList(degree.courses).map((course, index) => (
                       <li key={index}>{course.title}</li>
                     ))}
-                    {degree.courses.length >
+                    {degree.courses?.length >
                       getCourseList(degree.courses).length && (
                       <li>...and more</li>
                     )}
