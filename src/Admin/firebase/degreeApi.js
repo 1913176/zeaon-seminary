@@ -1,5 +1,5 @@
 import { db, storage } from './firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocs } from 'firebase/firestore';
+import {collection, doc, getDoc, getDocs, updateDoc, query, where, addDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getMediaDuration } from './mediaUtils';
@@ -49,6 +49,25 @@ const createTestObject = (testData) => {
   };
 };
 
+export const getDegreeById = async (degreeId) => {
+  try {
+    const degreesQuery = query(
+      collection(db, 'degrees'),
+      where('id', '==', degreeId) 
+    );
+    const degreeSnapshot = await getDocs(degreesQuery);
+
+    if (degreeSnapshot.empty) {
+      throw new Error(`No degree found with id: ${degreeId}`);
+    }
+
+    return degreeSnapshot.docs[0]; 
+  } catch (error) {
+    console.error('Error fetching degree by id:', error);
+    return null;
+  }
+};
+
 // Add Degree with courses and tests
 export const addDegree = async (degreeData) => {
   try {
@@ -60,30 +79,32 @@ export const addDegree = async (degreeData) => {
       thumbnailUrl = await uploadFile(degreeData.thumbnail, 'image');
     }
 
-    const courses = await Promise.all(degreeData.courses.map(async (course) => {
-      let courseThumbnailUrl = '';
-      if (course.thumbnail) {
-        courseThumbnailUrl = await uploadFile(course.thumbnail, 'image');
-      }
+    const courses = await Promise.all(
+      degreeData.courses.map(async (course) => {
+        let courseThumbnailUrl = '';
+        if (course.thumbnail) {
+          courseThumbnailUrl = await uploadFile(course.thumbnail, 'image');
+        }
 
-      let finalTest = null;
-      if (course.finalTest) {
-        finalTest = createTestObject(course.finalTest); // Final test for the course
-      }
+        let finalTest = null;
+        if (course.finalTest) {
+          finalTest = createTestObject(course.finalTest); // Final test for the course
+        }
 
-      return {
-        course_id: uuidv4(),
-        title: course.title,
-        description: course.description,
-        image: courseThumbnailUrl || '',
-        chapters: [], // Placeholder for chapters
-        finalTest: finalTest, // Final test for the course
-      };
-    }));
+        return {
+          course_id: uuidv4(),
+          title: course.title,
+          description: course.description,
+          image: courseThumbnailUrl || '',
+          chapters: [], // Placeholder for chapters
+          finalTest: finalTest, 
+        };
+      })
+    );
 
     await addDoc(collection(db, 'degrees'), {
-      id: degreeId,
-      degree_title: degreeData.name, 
+      id: degreeId, 
+      degree_title: degreeData.name,
       description: degreeData.description,
       price: degreeData.price,
       thumbnail: thumbnailUrl || null,
@@ -100,20 +121,16 @@ export const addDegree = async (degreeData) => {
 };
 
 
-
 // Add a course to an existing degree
-
 export const addCourseToDegree = async (degreeId, courseData) => {
   try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
+    const degreeDoc = await getDegreeById(degreeId); 
+    if (!degreeDoc) {
       return false;
     }
 
-    const degreeData = degreeSnapshot.data();
+    const degreeRef = degreeDoc.ref; 
+    const degreeData = degreeDoc.data();
 
     const newCourse = {
       course_id: uuidv4(),
@@ -136,13 +153,15 @@ export const addCourseToDegree = async (degreeId, courseData) => {
 };
 
 
-
 // Add a chapter to a course
 export const addChapterToCourse = async (degreeId, courseId, chapterData) => {
   try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    const degreeData = degreeSnapshot.data();
+    const degreeDoc = await getDegreeById(degreeId); 
+    if (!degreeDoc) {
+      return false;
+    }
+    const degreeRef = degreeDoc.ref; 
+    const degreeData = degreeDoc.data();
 
     const updatedCourses = degreeData.courses.map((course) => {
       if (course.course_id === courseId) {
@@ -150,7 +169,7 @@ export const addChapterToCourse = async (degreeId, courseId, chapterData) => {
           chapter_id: uuidv4(),
           title: chapterData.title,
           description: chapterData.description,
-          lessons: [] // Placeholder for lessons
+          lessons: [], // Placeholder for lessons
         };
         return { ...course, chapters: [...(course.chapters || []), newChapter] };
       }
@@ -168,34 +187,33 @@ export const addChapterToCourse = async (degreeId, courseId, chapterData) => {
 
 export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonData, file) => {
   try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
+    const degreeDoc = await getDegreeById(degreeId); 
+    if (!degreeDoc) {
       return false;
     }
 
-    const degreeData = degreeSnapshot.data();
+    const degreeRef = degreeDoc.ref; 
+    const degreeData = degreeDoc.data();
 
     let fileMetadata = null;
     if (file) {
-      const fileType = file.type.split('/')[0]; 
-      const fileUrl = await uploadFile(file, fileType); 
+      const fileType = file.type.split('/')[0];
+      const fileUrl = await uploadFile(file, fileType);
 
       let duration = null;
       if (fileType === 'video' || fileType === 'audio') {
-        duration = await getMediaDuration(file); 
+        duration = await getMediaDuration(file);
       }
 
       fileMetadata = {
-        url: fileUrl, 
-        type: fileType, 
-        name: file.name, 
-        duration, 
+        url: fileUrl,
+        type: fileType,
+        name: file.name,
+        duration,
         link: fileUrl,
       };
     }
+
     const updatedCourses = degreeData.courses.map((course) => {
       if (course.course_id === courseId) {
         const updatedChapters = course.chapters.map((chapter) => {
@@ -204,7 +222,7 @@ export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonDa
               lesson_id: uuidv4(),
               title: lessonData.title,
               description: lessonData.description,
-              file: fileMetadata, 
+              file: fileMetadata,
               test: lessonData.test ? createTestObject(lessonData.test) : null,
             };
             return { ...chapter, lessons: [...(chapter.lessons || []), newLesson] };
@@ -469,24 +487,6 @@ export const getAllDegrees = async () => {
   }
 };
 
-// Get a degree by ID
-export const getDegreeById = async (degreeId) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    if (degreeSnapshot.exists()) {
-      const data = degreeSnapshot.data();
-      console.log('Degree data retrieved:', data);
-      return data;
-    } else {
-      console.log('No such degree found!');
-      return null;
-    }
-  } catch (error) {
-    console.error('Error getting degree:', error);
-    return null;
-  }
-};
 
 // Get a course by ID
 export const getCourseById = async (degreeId, courseId) => {
