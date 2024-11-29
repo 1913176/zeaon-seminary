@@ -183,8 +183,8 @@ const Sidebar = () => {
             />
             <SidebarItem
               icon={faBook}
-              path={"./Courses"}
-              text={"Courses"}
+              path={"./degrees"}
+              text={"Degrees"}
               expanded={expanded}
             />
           </div>

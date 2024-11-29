@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import Profile from "../Components/Profile/Profile";
 import Dashboard from "../Components/Dashboard";
-import Courses from "../Components/courses/Courses";
+// import Courses from "../Components/courses/Courses";
 import Enrolled from "../Components/Enrolled/Enrolled";
 import Home from "../Components/Home/Home";
 import AddnewDegree from "../Admin/pages/degrees/new-degree/AddnewDegree";
@@ -14,6 +14,7 @@ import Login from "../Authentication/Login";
 import CourseDetails from "../Components/CourseDetails/CourseDetails";
 import AllTests from "../Admin/pages/tests/AllTests";
 import TestDetails from "../Admin/pages/tests/TestDetails";
+import Degrees from "../Components/Degrees/Degrees";
 
 const AppRoutes = () => {
   return (
@@ -24,7 +25,8 @@ const AppRoutes = () => {
       <Route path="home" element={<Dashboard />}>
         <Route index element={<Home />}></Route>
         <Route path="profile" element={<Profile />}></Route>
-        <Route path="courses" element={<Courses />} ></Route>
+        {/* <Route path="courses" element={<Courses />} ></Route> */}
+        <Route path="degrees" element={<Degrees />} />
         <Route path="enrolled" element={<Enrolled />} ></Route>
         <Route path="courseDetails/:courseId" element={<CourseDetails />} />
       </Route>
