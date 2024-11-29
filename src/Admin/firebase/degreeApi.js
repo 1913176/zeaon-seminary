@@ -244,196 +244,42 @@ export const addLessonToChapter = async (degreeId, courseId, chapterId, lessonDa
 };
 
 
-// Edit Chapter
-export const editChapter = async (degreeId, courseId, chapterId, updatedChapterData) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    const degreeData = degreeSnapshot.data();
-
-    const updatedCourses = degreeData.courses.map((course) => {
-      if (course.course_id === courseId) {
-        const updatedChapters = course.chapters.map((chapter) =>
-          chapter.chapter_id === chapterId ? { ...chapter, ...updatedChapterData, updatedAt: Date.now() } : chapter
-        );
-        return { ...course, chapters: updatedChapters };
-      }
-      return course;
-    });
-
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Chapter updated successfully!');
-    return true;
-  } catch (error) {
-    console.error('Error updating chapter:', error);
-    return false;
-  }
-};
-
-// Edit Lesson
-export const editLesson = async (degreeId, courseId, chapterId, lessonId, updatedLessonData, newFile) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
-      return false;
-    }
-
-    const degreeData = degreeSnapshot.data();
-    let newFileMetadata = null;
-    let newDuration = null;
-
-    if (newFile) {
-      const fileType = newFile.type.split('/')[0];
-      const fileUrl = await uploadFile(newFile, fileType);
-
-      newFileMetadata = {
-        url: fileUrl,
-        type: fileType,
-        name: newFile.name,
-      };
-
-      if (fileType === 'video' || fileType === 'audio') {
-        newDuration = await getMediaDuration(fileUrl);
-      }
-    }
-
-    const updatedCourses = degreeData.courses.map((course) => {
-      if (course.course_id === courseId) {
-        const updatedChapters = course.chapters.map((chapter) => {
-          if (chapter.chapter_id === chapterId) {
-            const updatedLessons = chapter.lessons.map((lesson) => {
-              if (lesson.lesson_id === lessonId) {
-                return {
-                  ...lesson,
-                  title: updatedLessonData.title || lesson.title,
-                  description: updatedLessonData.description || lesson.description,
-                  file: newFileMetadata || lesson.file,
-                  duration: newDuration || lesson.duration, 
-                  test: updatedLessonData.test || lesson.test,
-                };
-              }
-              return lesson;
-            });
-            return { ...chapter, lessons: updatedLessons };
-          }
-          return chapter;
-        });
-        return { ...course, chapters: updatedChapters };
-      }
-      return course;
-    });
-
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Lesson successfully updated!');
-    return true;
-  } catch (error) {
-    console.error('Error updating lesson:', error);
-    return false;
-  }
-};
-
-
 // Edit Test
 export const editTest = async (degreeId, courseId, chapterId, lessonId, testId, updatedTestData) => {
   try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    const degreeData = degreeSnapshot.data();
-
-    const updatedCourses = degreeData.courses.map((course) => {
-      if (course.course_id === courseId) {
-        const updatedChapters = course.chapters.map((chapter) => {
-          if (chapter.chapter_id === chapterId) {
-            const updatedLessons = chapter.lessons.map((lesson) => {
-              if (lesson.lesson_id === lessonId && lesson.test?.test_id === testId) {
-                lesson.test = { ...lesson.test, ...updatedTestData, updatedAt: Date.now() };
-              }
-              return lesson;
-            });
-            return { ...chapter, lessons: updatedLessons };
-          }
-          return chapter;
-        });
-        return { ...course, chapters: updatedChapters };
-      }
-      return course;
-    });
-
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Test updated successfully!');
-    return true;
-  } catch (error) {console.error('Error updating test:', error);
-    return false;
-  }
-};
-
-// Delete Chapter
-export const deleteChapter = async (degreeId, courseId, chapterId) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    const degreeData = degreeSnapshot.data();
-
-    const updatedCourses = degreeData.courses.map((course) => {
-      if (course.course_id === courseId) {
-        const updatedChapters = course.chapters.filter((chapter) => chapter.chapter_id !== chapterId);
-        return { ...course, chapters: updatedChapters };
-      }
-      return course;
-    });
-
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Chapter deleted successfully!');
-    return true;
-  } catch (error) {
-    console.error('Error deleting chapter:', error);
-    return false;
-  }
-};
-
-// Delete Lesson
-export const deleteLesson = async (degreeId, courseId, chapterId, lessonId) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
-      return false;
+    const lesson = await getLessonById(degreeId, courseId, chapterId, lessonId);
+    if (!lesson) {
+      throw new Error(`Lesson with id ${lessonId} does not exist`);
     }
 
-    const degreeData = degreeSnapshot.data();
+    if (lesson.test && lesson.test.test_id === testId) {
+      const updatedTest = { ...lesson.test, ...updatedTestData, updatedAt: Date.now() };
+      const updatedLessons = lesson.chapter.lessons.map((lessonItem) =>
+        lessonItem.lesson_id === lessonId
+          ? { ...lessonItem, test: updatedTest }
+          : lessonItem
+      );
 
-    const updatedCourses = degreeData.courses.map((course) => {
-      if (course.course_id === courseId) {
-        const updatedChapters = course.chapters.map((chapter) => {
-          if (chapter.chapter_id === chapterId) {
-            const updatedLessons = chapter.lessons.filter((lesson) => {
-              if (lesson.lesson_id === lessonId) {
-                if (lesson.file?.url) {
-                  deleteFile(lesson.file.url); 
-                }
-                return false; 
-              }
-              return true;
-            });
-            return { ...chapter, lessons: updatedLessons };
-          }
-          return chapter;
-        });
-        return { ...course, chapters: updatedChapters };
-      }
-      return course;
-    });
+      const updatedChapters = lesson.chapter.course.chapters.map((chapter) =>
+        chapter.chapter_id === chapterId
+          ? { ...chapter, lessons: updatedLessons }
+          : chapter
+      );
 
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Lesson successfully deleted!');
-    return true;
+      const updatedCourses = lesson.chapter.course.degree.courses.map((course) =>
+        course.course_id === courseId
+          ? { ...course, chapters: updatedChapters }
+          : course
+      );
+
+      await updateDoc(doc(db, 'degrees', degreeId), { courses: updatedCourses });
+      console.log('Test updated successfully!');
+      return true;
+    } else {
+      throw new Error(`Test with id ${testId} does not exist in this lesson`);
+    }
   } catch (error) {
-    console.error('Error deleting lesson:', error);
+    console.error('Error updating test:', error);
     return false;
   }
 };
@@ -441,32 +287,35 @@ export const deleteLesson = async (degreeId, courseId, chapterId, lessonId) => {
 // Delete Test
 export const deleteTest = async (degreeId, courseId, chapterId, lessonId, testId) => {
   try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    const degreeData = degreeSnapshot.data();
+    const lesson = await getLessonById(degreeId, courseId, chapterId, lessonId);
+    if (!lesson) {
+      throw new Error(`Lesson with id ${lessonId} does not exist`);
+    }
+    if (lesson.test && lesson.test.test_id === testId) {
+      const updatedLessons = lesson.chapter.lessons.map((lessonItem) =>
+        lessonItem.lesson_id === lessonId
+          ? { ...lessonItem, test: null }
+          : lessonItem
+      );
 
-    const updatedCourses = degreeData.courses.map((course) => {
-      if (course.course_id === courseId) {
-        const updatedChapters = course.chapters.map((chapter) => {
-          if (chapter.chapter_id === chapterId) {
-            const updatedLessons = chapter.lessons.map((lesson) => {
-              if (lesson.lesson_id === lessonId && lesson.test?.test_id === testId) {
-                lesson.test = null; // Remove the test
-              }
-              return lesson;
-            });
-            return { ...chapter, lessons: updatedLessons };
-          }
-          return chapter;
-        });
-        return { ...course, chapters: updatedChapters };
-      }
-      return course;
-    });
+      const updatedChapters = lesson.chapter.course.chapters.map((chapter) =>
+        chapter.chapter_id === chapterId
+          ? { ...chapter, lessons: updatedLessons }
+          : chapter
+      );
 
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Test deleted successfully!');
-    return true;
+      const updatedCourses = lesson.chapter.course.degree.courses.map((course) =>
+        course.course_id === courseId
+          ? { ...course, chapters: updatedChapters }
+          : course
+      );
+
+      await updateDoc(doc(db, 'degrees', degreeId), { courses: updatedCourses });
+      console.log('Test deleted successfully!');
+      return true;
+    } else {
+      throw new Error(`Test with id ${testId} does not exist in this lesson`);
+    }
   } catch (error) {
     console.error('Error deleting test:', error);
     return false;
@@ -474,115 +323,20 @@ export const deleteTest = async (degreeId, courseId, chapterId, lessonId, testId
 };
 
 
-// Get all degrees
-export const getAllDegrees = async () => {
-  try {
-    const degreesCollectionRef = collection(db, 'degrees');
-    const degreesSnapshot = await getDocs(degreesCollectionRef);
-    const degreesList = degreesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    return degreesList;
-  } catch (error) {
-    console.error('Error getting all degrees:', error);
-    return [];
-  }
-};
-
-
-// Get a course by ID
-export const getCourseById = async (degreeId, courseId) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-    if (degreeSnapshot.exists()) {
-      const degreeData = degreeSnapshot.data();
-      const course = degreeData.courses.find((course) => course.course_id === courseId);
-      if (course) {
-        console.log('Course data retrieved:', course);
-        return course;
-      } else {
-        console.log('No such course found!');
-        return null;
-      }
-    } else {
-      console.log('No such degree found!');
-      return null;
-    }
-  } catch (error) {
-    console.error('Error getting course:', error);
-    return null;
-  }
-};
-// Edit Course
-export const editCourse = async (degreeId, courseId, updatedCourseData) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
-      return false;
-    }
-
-    const degreeData = degreeSnapshot.data();
-
-    const updatedCourses = degreeData.courses.map((course) =>
-      course.course_id === courseId
-        ? { ...course, ...updatedCourseData, updatedAt: Date.now() }
-        : course
-    );
-
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Course updated successfully!');
-    return true;
-  } catch (error) {
-    console.error('Error updating course:', error);
-    return false;
-  }
-};
-
-// Delete Course
-export const deleteCourse = async (degreeId, courseId) => {
-  try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
-      return false;
-    }
-
-    const degreeData = degreeSnapshot.data();
-
-    const updatedCourses = degreeData.courses.filter((course) => course.course_id !== courseId);
-
-    await updateDoc(degreeRef, { courses: updatedCourses });
-    console.log('Course deleted successfully!');
-    return true;
-  } catch (error) {
-    console.error('Error deleting course:', error);
-    return false;
-  }
-};
 // Edit Degree
 export const editDegree = async (degreeId, updatedDegreeData) => {
   try {
-    const degreeRef = doc(db, 'degrees', degreeId);
-    const degreeSnapshot = await getDoc(degreeRef);
-
-    if (!degreeSnapshot.exists()) {
-      console.error('No such degree found with id:', degreeId);
-      return false;
+    const degree = await getDegreeById(degreeId);
+    if (!degree) {
+      throw new Error(`Degree with id ${degreeId} does not exist`);
     }
 
     const updatedData = {
-      degree_title: updatedDegreeData.degree_title,
-      description: updatedDegreeData.description,
-      price: updatedDegreeData.price,
-      thumbnail: updatedDegreeData.thumbnail || null, // If thumbnail is updated
+      ...updatedDegreeData,
       updatedAt: Date.now(),
     };
-    
-    await updateDoc(degreeRef, updatedData);
+
+    await updateDoc(doc(db, 'degrees', degreeId), updatedData);
     console.log('Degree updated successfully!');
     return true;
   } catch (error) {
@@ -602,3 +356,224 @@ export const deleteDegree = async (degreeId) => {
     return false;
   }
 };
+// Edit Course
+export const editCourse = async (degreeId, courseId, updatedCourseData) => {
+  try {
+    const degree = await getDegreeById(degreeId);
+    if (!degree) {
+      throw new Error(`Degree with id ${degreeId} does not exist`);
+    }
+
+    const updatedCourses = degree.courses.map((course) =>
+      course.course_id === courseId
+        ? { ...course, ...updatedCourseData, updatedAt: Date.now() }
+        : course
+    );
+
+    await updateDoc(doc(db, 'degrees', degreeId), { courses: updatedCourses });
+    console.log('Course updated successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error updating course:', error);
+    return false;
+  }
+};
+
+// Delete Course
+export const deleteCourse = async (degreeId, courseId) => {
+  try {
+    const degree = await getDegreeById(degreeId);
+    if (!degree) {
+      throw new Error(`Degree with id ${degreeId} does not exist`);
+    }
+
+    const updatedCourses = degree.courses.filter((course) => course.course_id !== courseId);
+
+    await updateDoc(doc(db, 'degrees', degreeId), { courses: updatedCourses });
+    console.log('Course deleted successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error deleting course:', error);
+    return false;
+  }
+};
+// Edit Chapter
+export const editChapter = async (degreeId, courseId, chapterId, updatedChapterData) => {
+  try {
+    const course = await getCourseById(degreeId, courseId);
+    if (!course) {
+      throw new Error(`Course with id ${courseId} does not exist`);
+    }
+
+    const updatedChapters = course.chapters.map((chapter) =>
+      chapter.chapter_id === chapterId
+        ? { ...chapter, ...updatedChapterData, updatedAt: Date.now() }
+        : chapter
+    );
+
+    await editCourse(degreeId, courseId, { chapters: updatedChapters });
+    console.log('Chapter updated successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error updating chapter:', error);
+    return false;
+  }
+};
+
+// Delete Chapter
+export const deleteChapter = async (degreeId, courseId, chapterId) => {
+  try {
+    const course = await getCourseById(degreeId, courseId);
+    if (!course) {
+      throw new Error(`Course with id ${courseId} does not exist`);
+    }
+
+    const updatedChapters = course.chapters.filter((chapter) => chapter.chapter_id !== chapterId);
+
+    await editCourse(degreeId, courseId, { chapters: updatedChapters });
+    console.log('Chapter deleted successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error deleting chapter:', error);
+    return false;
+  }
+};
+// Edit Lesson
+export const editLesson = async (degreeId, courseId, chapterId, lessonId, updatedLessonData, newFile = null) => {
+  try {
+    const chapter = await getChapterById(degreeId, courseId, chapterId);
+    if (!chapter) {
+      throw new Error(`Chapter with id ${chapterId} does not exist`);
+    }
+
+    let newFileMetadata = null;
+    if (newFile) {
+      const fileType = newFile.type.split('/')[0];
+      const fileUrl = await uploadFile(newFile, fileType);
+
+      newFileMetadata = {
+        url: fileUrl,
+        type: fileType,
+        name: newFile.name,
+        duration: fileType === 'video' || fileType === 'audio' ? await getMediaDuration(newFile) : null,
+      };
+    }
+
+    const updatedLessons = chapter.lessons.map((lesson) =>
+      lesson.lesson_id === lessonId
+        ? { ...lesson, ...updatedLessonData, file: newFileMetadata || lesson.file, updatedAt: Date.now() }
+        : lesson
+    );
+
+    await editChapter(degreeId, courseId, chapterId, { lessons: updatedLessons });
+    console.log('Lesson updated successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error updating lesson:', error);
+    return false;
+  }
+};
+
+// Delete Lesson
+export const deleteLesson = async (degreeId, courseId, chapterId, lessonId) => {
+  try {
+    const chapter = await getChapterById(degreeId, courseId, chapterId);
+    if (!chapter) {
+      throw new Error(`Chapter with id ${chapterId} does not exist`);
+    }
+
+    const updatedLessons = chapter.lessons.filter((lesson) => {
+      if (lesson.lesson_id === lessonId) {
+        if (lesson.file?.url) {
+          deleteFile(lesson.file.url); 
+        }
+        return false;
+      }
+      return true;
+    });
+
+    await editChapter(degreeId, courseId, chapterId, { lessons: updatedLessons });
+    console.log('Lesson deleted successfully!');
+    return true;
+  } catch (error) {
+    console.error('Error deleting lesson:', error);
+    return false;
+  }
+};
+
+// Get all degrees
+export const getAllDegrees = async () => {
+  try {
+    const degreesCollectionRef = collection(db, 'degrees');
+    const degreesSnapshot = await getDocs(degreesCollectionRef);
+    const degreesList = degreesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return degreesList;
+  } catch (error) {
+    console.error('Error getting all degrees:', error);
+    return [];
+  }
+};
+
+// Get a course by ID
+export const getCourseById = async (degreeId, courseId) => {
+  try {
+    const degreeDoc = await getDegreeById(degreeId);
+    if (!degreeDoc) return null;
+
+    const degreeData = degreeDoc.data();
+    const course = degreeData.courses.find((course) => course.course_id === courseId);
+
+    if (!course) {
+      throw new Error(`No course found with id: ${courseId}`);
+    }
+
+    return course; 
+  } catch (error) {
+    console.error('Error fetching course by id:', error);
+    return null;
+  }
+};
+
+// Get a chapter by ID
+export const getChapterById = async (degreeId, courseId, chapterId) => {
+  try {
+    const course = await getCourseById(degreeId, courseId); 
+    if (!course) return null;
+
+    const chapter = course.chapters.find((chapter) => chapter.chapter_id === chapterId);
+
+    if (!chapter) {
+      throw new Error(`No chapter found with id: ${chapterId}`);
+    }
+
+    return chapter; 
+  } catch (error) {
+    console.error('Error fetching chapter by id:', error);
+    return null;
+  }
+};
+
+// Get a lesson by ID
+export const getLessonById = async (degreeId, courseId, chapterId, lessonId) => {
+  try {
+    const chapter = await getChapterById(degreeId, courseId, chapterId);
+    if (!chapter) return null;
+
+    const lesson = chapter.lessons.find((lesson) => lesson.lesson_id === lessonId);
+
+    if (!lesson) {
+      throw new Error(`No lesson found with id: ${lessonId}`);
+    }
+
+    return lesson;
+  } catch (error) {
+    console.error('Error fetching lesson by id:', error);
+    return null;
+  }
+};
+
+
+
+
+
+
