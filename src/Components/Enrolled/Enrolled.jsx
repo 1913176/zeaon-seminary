@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 // import axios from "axios";
-import "../Courses/Courses.css";
+import "../Degrees/Degrees.css"
 import { useNavigate } from "react-router-dom";
 import imgd from "../Assets/Images/imagenotxt2.png";
 import LoadingPage from "../LoadingPage/LoadingPage";
