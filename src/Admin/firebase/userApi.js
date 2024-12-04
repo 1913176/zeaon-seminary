@@ -110,6 +110,29 @@ export const getUserById = async (id) => {
 };
 
 
+export const getUsersByPurchasedDegree = async (degreeId) => {
+    try {
+        if (!degreeId) {
+            throw new Error('Degree ID is required');
+        }
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('purchasedDegrees', 'array-contains', degreeId));
+        const querySnapshot = await getDocs(q);
+
+        const users = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        console.log(`${users.length} users found with the purchased degree: ${degreeId}`);
+        return users;
+    } catch (error) {
+        console.error('Error fetching users by purchased degree:', error);
+        return [];
+    }
+};
+
+
 export const editUser = async (id, data) => {
     try {
         let educationCertURL = data?.educationCertURL || '';
