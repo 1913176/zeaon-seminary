@@ -66,6 +66,7 @@ export const addUser = async (data) => {
             username: data.username,
             password: hashedPassword,
             purchasedDegrees: [],
+            role: data.role || 'client',
             joinedDate: Date.now()
         });
 
@@ -116,7 +117,7 @@ export const getUsersByPurchasedDegree = async (degreeId) => {
             throw new Error('Degree ID is required');
         }
         const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('purchasedDegrees', 'array-contains', degreeId));
+        const q = query(usersRef, where('purchasedDegrees', 'array-contains', { degreeId }));
         const querySnapshot = await getDocs(q);
 
         const users = querySnapshot.docs.map(doc => ({
@@ -131,6 +132,26 @@ export const getUsersByPurchasedDegree = async (degreeId) => {
         return [];
     }
 };
+
+export const getUsersByRole = async (role) => {
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', role));
+        const querySnapshot = await getDocs(q);
+
+        const users = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        console.log(`${users.length} users found with the role: ${role}`);
+        return users;
+    } catch (error) {
+        console.error('Error fetching users by role:', error);
+        return [];
+    }
+};
+
 
 
 export const editUser = async (id, data) => {
@@ -180,7 +201,8 @@ export const editUser = async (id, data) => {
             passportPhotoURL: passportPhotoURL,
             educationCertURL: educationCertURL,
             username: data.username,
-            password: hashedPassword
+            password: hashedPassword,
+            role: data.role || 'client' 
         });
 
         console.log('Data successfully updated in Firestore and files uploaded to Storage!');
@@ -202,7 +224,7 @@ export const deleteUser = async (id) => {
     }
 };
 
-export const addDegreeToUser = async (userId, degreeId) => {
+export const addDegreeToUser = async (userId, degree) => {
     try {
         const userRef = doc(db, 'users', userId);
         const userSnapshot = await getDoc(userRef);
@@ -214,15 +236,21 @@ export const addDegreeToUser = async (userId, degreeId) => {
 
         const userData = userSnapshot.data();
         const purchasedDegrees = userData.purchasedDegrees || [];
-
-        if (purchasedDegrees.includes(degreeId)) {
+        const existingDegree = purchasedDegrees.find(d => d.degreeId === degree.degreeId);
+        if (existingDegree) {
             console.log('Degree already purchased by user.');
             return { success: false, message: 'Degree already purchased' };
         }
+        const updatedDegrees = [
+            ...purchasedDegrees,
+            {
+                degreeId: degree.degreeId,
+                degreeName: degree.degreeName,
+                progress: degree.progress || 0
+            }
+        ];
 
-        await updateDoc(userRef, {
-            purchasedDegrees: [...purchasedDegrees, degreeId]
-        });
+        await updateDoc(userRef, { purchasedDegrees: updatedDegrees });
 
         console.log('Degree successfully added to user!');
         return { success: true, message: 'Degree added to user' };
