@@ -319,7 +319,7 @@ export const getDegreeByCourseId = async (courseId) => {
 
 export const getCourseById = async (courseId) => {
     try {
-      const degreesSnapshot = await getDocs(collection(db, 'degrees'));
+      const degreesSnapshot = await getDocs(collection(db, DEGREES_COLLECTION));
       for (const degreeDoc of degreesSnapshot.docs) {
         const degreeData = degreeDoc.data();
         const course = degreeData.courses.find((c) => c.courseId === courseId);
