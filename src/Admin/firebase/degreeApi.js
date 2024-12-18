@@ -1,5 +1,5 @@
 import { db, storage } from './firebase';
-import {collection, addDoc, getDocs, updateDoc,setDoc, doc, deleteDoc, query, where, getDoc  } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, setDoc, doc, deleteDoc, query, where, getDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getMediaDuration } from './mediaUtils';
@@ -14,6 +14,36 @@ const SUPPORTED_FILE_FOLDERS = {
     ppt: 'presentations',
 };
 
+const checkRequiredFields = (degreeData) => {
+    if (!degreeData.name) {
+        throw new Error('Degree title is required');
+    }
+
+    const hasValidCourses = degreeData.courses.every((course) => {
+        if (!course.title) {
+            throw new Error('Course title is required');
+        }
+
+        const hasValidChapters = course.chapters.every((chapter) => {
+            if (!chapter.title) {
+                throw new Error('Chapter title is required');
+            }
+
+            const hasValidLessons = chapter.lessons.every((lesson) => {
+                if (!lesson.title) {
+                    throw new Error('Lesson title is required');
+                }
+                return true;
+            });
+
+            return hasValidLessons;
+        });
+
+        return hasValidChapters;
+    });
+
+    return hasValidCourses;
+};
 
 export const uploadFile = async (file) => {
     try {
@@ -37,7 +67,7 @@ export const uploadFile = async (file) => {
             duration,
         };
     } catch (error) {
-        console.error('Error uploading file:', error);
+        console.error('Error uploading file:', error.message);
         throw new Error('File upload failed');
     }
 };
@@ -48,79 +78,49 @@ export const uploadThumbnail = async (file) => {
         await uploadBytes(fileRef, file);
         return await getDownloadURL(fileRef);
     } catch (error) {
-        console.error('Error uploading thumbnail:', error);
+        console.error('Error uploading thumbnail:', error.message);
         throw new Error('Thumbnail upload failed');
     }
 };
 
-
-const createTestObject = (testData) => ({
-    testId: uuidv4(),
-    title: testData.title,
-    timeLimit: testData.timeLimit,
-    type: testData.type,  
-    totalMarks: 0,  
-    questions: testData.questions.map((question) => {
+const createTestObject = (testData) => {
+    const questions = testData.questions.map((question) => {
         const questionData = {
-            question: question.question,
-            answerType: question.type, 
+            question: question.question || null,
+            answerType: question.type || null,
         };
 
         if (question.type === 'MCQ') {
             questionData.options = question.options || [];
             questionData.correctAnswer = question.correctAnswer || null;
-            questionData.marks = question.marks || 1;  
-            questionData.userAnswer = null;  
+            questionData.marks = question.marks || 1;
         } else if (question.type === 'Typed') {
-            questionData.answer = question.answer || '';  
-            questionData.marks = 0;   
-            questionData.userAnswer = '';  
+            questionData.answer = question.answer || '';
+            questionData.marks = question.marks || 0;
         }
 
         return questionData;
-    }),
+    });
 
-
-    calculateTotalMarks() {
-        let total = 0;
-        this.questions.forEach((question) => {
-            if (question.answerType === 'MCQ') {
-                total += question.marks;  
-            } else if (question.answerType === 'Typed') {
-                total += question.marks;  
-            }
-        });
-        this.totalMarks = total; 
-    },
-
-    calculateUserMarks(userAnswers) {
-        let userTotal = 0;
-
-        this.questions.forEach((question, index) => {
-            if (question.answerType === 'MCQ') {
-                if (userAnswers[index].answer === question.correctAnswer) {
-                    userTotal += question.marks;  
-                }
-            } else if (question.answerType === 'Typed') {
-                if (userAnswers[index].isValidated) {
-                    userTotal += question.marks; 
-                }
-            }
-        });
-
-        return userTotal;
-    }
-});
-
+    return {
+        testId: uuidv4(),
+        title: testData.title || null,
+        timeLimit: testData.timeLimit || null,
+        type: testData.type || null,
+        questions,
+        totalMarks: questions.reduce((total, q) => total + (q.marks || 0), 0),
+    };
+};
 
 export const addDegree = async (degreeData) => {
     try {
+        checkRequiredFields(degreeData);
+
         const { name, description, thumbnail, overviewPoints, courses } = degreeData;
         const degreeThumbnailUrl = thumbnail ? await uploadThumbnail(thumbnail) : null;
 
         const formattedCourses = await Promise.all(
             courses.map(async (course) => {
-    
                 const courseThumbnailUrl = course.thumbnail ? await uploadThumbnail(course.thumbnail) : null;
 
                 const formattedChapters = await Promise.all(
@@ -128,7 +128,6 @@ export const addDegree = async (degreeData) => {
                         const formattedLessons = await Promise.all(
                             chapter.lessons.map(async (lesson) => {
                                 const lessonFileMetadata = await uploadFile(lesson.file);
-
                                 return {
                                     lessonId: uuidv4(),
                                     lessonTitle: lesson.title,
@@ -137,15 +136,13 @@ export const addDegree = async (degreeData) => {
                             })
                         );
 
-                    
                         const test = chapter.test ? createTestObject(chapter.test) : null;
-                        if (test) test.calculateTotalMarks(); 
 
                         return {
                             chapterId: uuidv4(),
                             chapterTitle: chapter.title,
-                            description: chapter.description || '',
-                            test,
+                            description: chapter.description || null, 
+                            test: chapter.test ? createTestObject(chapter.test) : null,
                             lessons: formattedLessons,
                         };
                     })
@@ -154,15 +151,15 @@ export const addDegree = async (degreeData) => {
                 return {
                     courseId: uuidv4(),
                     courseTitle: course.title,
-                    description: course.description,
-                    thumbnail: courseThumbnailUrl,  
-                    price: course.price,
+                    description: course.description || null, 
+                    thumbnail: courseThumbnailUrl || null,
+                    price: course.price || null,  
                     chapters: formattedChapters,
                     finalTest: course.finalTest ? createTestObject(course.finalTest) : null,
-                    overviewPoints: course.overviewPoints.map((point) => ({
-                        title: point.title,
-                        description: point.description,
-                    })),
+                    overviewPoints: course.overviewPoints ? course.overviewPoints.map((point) => ({
+                        title: point.title || null,
+                        description: point.description || null,
+                    })) : [],
                 };
             })
         );
@@ -170,12 +167,12 @@ export const addDegree = async (degreeData) => {
         const degree = {
             degreeId: uuidv4(),
             degreeTitle: name,
-            description,
-            thumbnail: degreeThumbnailUrl, 
-            overviewPoints: overviewPoints.map((point) => ({
-                title: point.title,
-                description: point.description,
-            })),
+            description: description || null,  
+            thumbnail: degreeThumbnailUrl || null,
+            overviewPoints: overviewPoints ? overviewPoints.map((point) => ({
+                title: point.title || null,
+                description: point.description || null,
+            })) : [],
             courses: formattedCourses,
             createdAt: Date.now(),
         };
@@ -184,91 +181,43 @@ export const addDegree = async (degreeData) => {
         console.log('Degree added successfully!');
         return degree.degreeId;
     } catch (error) {
-        console.error('Error adding degree:', error);
-        throw new Error('Degree saving failed');
+        console.error('Error adding degree:', error.message);
+        throw new Error(error.message);
     }
 };
 
 export const getAllDegrees = async () => {
     try {
         const querySnapshot = await getDocs(collection(db, DEGREES_COLLECTION));
-        const degrees = querySnapshot.docs.map((doc) => ({
+        return querySnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
         }));
-        return degrees;
     } catch (error) {
-        console.error('Error getting degrees:', error);
+        console.error('Error getting degrees:', error.message);
         throw new Error('Failed to fetch degrees');
     }
 };
 
-
 export const getDegreeById = async (degreeId) => {
     try {
-        const degreeQuery = query(collection(db, DEGREES_COLLECTION), where('degreeId', '==', degreeId));
-        const degreeSnapshot = await getDocs(degreeQuery);
+        const docRef = doc(db, DEGREES_COLLECTION, degreeId);
+        const docSnap = await getDoc(docRef);
 
-        if (degreeSnapshot.empty) throw new Error(`No degree found with ID: ${degreeId}`);
-        return degreeSnapshot.docs[0].data();
+        if (!docSnap.exists()) throw new Error(`No degree found with ID: ${degreeId}`);
+        return docSnap.data();
     } catch (error) {
-        console.error('Error fetching degree by ID:', error);
+        console.error('Error fetching degree by ID:', error.message);
         return null;
     }
 };
 
-
-
-const updateTest = async (testId, testData) => {
-    const { title, timeLimit, type, questions } = testData;
-
-    const formattedQuestions = questions.map((question) => {
-        const questionData = {
-            question: question.question,
-            answerType: question.type, 
-        };
-
-        if (question.type === 'MCQ') {
-            questionData.options = question.options || [];
-            questionData.correctAnswer = question.correctAnswer || null;
-            questionData.marks = question.marks || 1;  
-            questionData.userAnswer = null;  
-        } else if (question.type === 'Typed') {
-            questionData.answer = question.answer || '';  
-            questionData.marks = 0;   
-            questionData.userAnswer = '';  
-        }
-
-        return questionData;
-    });
-
-
-    const testObject = {
-        testId,
-        title,
-        timeLimit,
-        type,
-        totalMarks: 0,  
-        questions: formattedQuestions,
-    };
-
-    testObject.calculateTotalMarks();
-
-    return testObject;
-};
-
 export const editDegree = async (degreeId, updatedDegreeData) => {
     try {
-        const degreeDocRef = doc(db, DEGREES_COLLECTION, degreeId);
-        
-        const {
-            name,
-            description,
-            thumbnail,
-            overviewPoints,
-            courses,
-        } = updatedDegreeData;
+        checkRequiredFields(updatedDegreeData);
 
+        const degreeDocRef = doc(db, DEGREES_COLLECTION, degreeId);
+        const { name, description, thumbnail, overviewPoints, courses } = updatedDegreeData;
         const degreeThumbnailUrl = thumbnail ? await uploadThumbnail(thumbnail) : null;
 
         const formattedCourses = await Promise.all(
@@ -288,13 +237,13 @@ export const editDegree = async (degreeId, updatedDegreeData) => {
                             })
                         );
 
-                        const formattedTest = chapter.test ? await updateTest(uuidv4(), chapter.test) : null;
+                        const test = chapter.test ? createTestObject(chapter.test) : null;
 
                         return {
                             chapterId: uuidv4(),
                             chapterTitle: chapter.title,
-                            description: chapter.description || '',
-                            test: formattedTest,
+                            description: chapter.description || null,  
+                            test: chapter.test ? createTestObject(chapter.test) : null,
                             lessons: formattedLessons,
                         };
                     })
@@ -303,27 +252,27 @@ export const editDegree = async (degreeId, updatedDegreeData) => {
                 return {
                     courseId: uuidv4(),
                     courseTitle: course.title,
-                    description: course.description,
-                    thumbnail: courseThumbnailUrl,
-                    price: course.price,
+                    description: course.description || null, 
+                    thumbnail: courseThumbnailUrl || null,
+                    price: course.price || null,  
                     chapters: formattedChapters,
-                    finalTest: course.finalTest ? await updateTest(uuidv4(), course.finalTest) : null,
-                    overviewPoints: course.overviewPoints.map((point) => ({
-                        title: point.title,
-                        description: point.description,
-                    })),
+                    finalTest: course.finalTest ? createTestObject(course.finalTest) : null,
+                    overviewPoints: course.overviewPoints ? course.overviewPoints.map((point) => ({
+                        title: point.title || null,
+                        description: point.description || null,
+                    })) : [],
                 };
             })
         );
 
         const updatedDegree = {
             degreeTitle: name,
-            description,
+            description: description || null,  
             thumbnail: degreeThumbnailUrl || null,
-            overviewPoints: overviewPoints.map((point) => ({
-                title: point.title,
-                description: point.description,
-            })),
+            overviewPoints: overviewPoints ? overviewPoints.map((point) => ({
+                title: point.title || null,
+                description: point.description || null,
+            })) : [],
             courses: formattedCourses,
             updatedAt: Date.now(),
         };
@@ -332,11 +281,10 @@ export const editDegree = async (degreeId, updatedDegreeData) => {
         console.log('Degree updated successfully!');
         return updatedDegree;
     } catch (error) {
-        console.error('Error updating degree:', error);
+        console.error('Error updating degree:', error.message);
         throw new Error('Degree update failed');
     }
 };
-
 
 export const deleteDegree = async (degreeId) => {
     try {
@@ -344,32 +292,19 @@ export const deleteDegree = async (degreeId) => {
         await deleteDoc(degreeDocRef);
         console.log('Degree deleted successfully!');
     } catch (error) {
-        console.error('Error deleting degree:', error);
+        console.error('Error deleting degree:', error.message);
         throw new Error('Degree deletion failed');
     }
 };
 
-
 export const getDegreeByCourseId = async (courseId) => {
     try {
-        const degreeQuery = query(
-            collection(db, DEGREES_COLLECTION),
-            where('courses', 'array-contains', { courseId })
-        );
-        const degreeSnapshot = await getDocs(degreeQuery);
-
-        if (degreeSnapshot.empty) {
-            throw new Error(`No degree found containing the course with ID: ${courseId}`);
-        }
-        const degreeDoc = degreeSnapshot.docs[0];
-        const degreeData = degreeDoc.data();
-
-        return {
-            degreeId: degreeData.degreeId,
-            degreeTitle: degreeData.degreeTitle,
-        };
+        const q = query(collection(db, DEGREES_COLLECTION), where('courses', 'array-contains', { courseId }));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) throw new Error(`No degree found for course ID: ${courseId}`);
+        return querySnapshot.docs.map((doc) => doc.data());
     } catch (error) {
-        console.error('Error fetching degree by courseId:', error);
-        throw new Error('Failed to fetch degree');
+        console.error('Error getting degree by course ID:', error.message);
+        throw new Error('Failed to fetch degree by course ID');
     }
 };
