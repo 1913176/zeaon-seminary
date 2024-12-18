@@ -299,10 +299,18 @@ export const deleteDegree = async (degreeId) => {
 
 export const getDegreeByCourseId = async (courseId) => {
     try {
-        const q = query(collection(db, DEGREES_COLLECTION), where('courses', 'array-contains', { courseId }));
+        const q = query(collection(db, DEGREES_COLLECTION));
         const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) throw new Error(`No degree found for course ID: ${courseId}`);
-        return querySnapshot.docs.map((doc) => doc.data());
+        const degrees = querySnapshot.docs
+            .map((doc) => doc.data())
+            .filter((degree) =>
+                degree.courses.some((course) => course.id === courseId)
+            );
+
+        if (degrees.length === 0) {
+            throw new Error(`No degree found for course ID: ${courseId}`);
+        }
+        return degrees;
     } catch (error) {
         console.error('Error getting degree by course ID:', error.message);
         throw new Error('Failed to fetch degree by course ID');
