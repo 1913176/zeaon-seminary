@@ -316,3 +316,24 @@ export const getDegreeByCourseId = async (courseId) => {
         throw new Error('Failed to fetch degree by course ID');
     }
 };
+
+export const getCourseById = async (courseId) => {
+    try {
+      const degreesSnapshot = await getDocs(collection(db, 'degrees'));
+      for (const degreeDoc of degreesSnapshot.docs) {
+        const degreeData = degreeDoc.data();
+        const course = degreeData.courses.find((c) => c.courseId === courseId);
+  
+        if (course) {
+          return {
+            degreeId: degreeDoc.id,
+            ...course,
+          };
+        }
+      }
+      throw new Error(`Course with ID ${courseId} not found`);
+    } catch (error) {
+      console.error('Error fetching course by ID:', error.message);
+      throw new Error('Failed to fetch course by ID');
+    }
+  };
