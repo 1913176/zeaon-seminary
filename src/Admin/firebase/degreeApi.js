@@ -2,6 +2,7 @@ import { db, storage } from './firebase';
 import {collection, addDoc, getDocs, updateDoc,setDoc, doc, deleteDoc, query, where, getDoc  } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { getMediaDuration } from './mediaUtils';
 
 const DEGREES_COLLECTION = 'degrees';
 const SUPPORTED_FILE_FOLDERS = {
