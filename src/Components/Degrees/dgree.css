@@ -1,0 +1,30 @@
+.add-degree {
+  width: 80%;
+  margin: auto;
+}
+
+.add-degree h1, h2, h3, h4 {
+  margin-top: 20px;
+  color: #333;
+}
+
+.add-degree input,
+.add-degree textarea,
+.add-degree button {
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.add-degree button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.add-degree button:hover {
+  background-color: #0056b3;
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Select from 'react-select';
 import { getAllDegrees } from "../../firebase/degreeApi";
-import { addUser } from "../../firebase/userApi";
+// import { addUser } from "../../firebase/userApi";
 // import { addnewUser } from "../../api/baseApi";
 
 const options = {

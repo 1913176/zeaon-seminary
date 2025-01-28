@@ -7,7 +7,7 @@ import { db, storage } from '../Admin/firebase/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { getAllDegrees } from '../Admin/firebase/degreeApi';
-import { addUser } from '../Admin/firebase/userApi';
+import { signupUser } from '../Admin/firebase/userApi';
 import courseContent from '../Components/Assets/Data/couseContent.json'
  
 const options = {
@@ -49,7 +49,7 @@ function Register() {
 
   // Submit 
   const onSubmit = async (data) => {
-    const res = await addUser(data)
+    const res = await signupUser(data)
     res && navigate('/login');
   };
 

@@ -1,0 +1,38 @@
+.view-degrees {
+    width: 90%;
+    margin: auto;
+}
+
+.degree-card,
+.course-card,
+.chapter-card,
+.lesson-card {
+    border: 1px solid #ddd;
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.degree-card img,
+.course-card img {
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.degree-card h2,
+.course-card h4,
+.chapter-card h5,
+.lesson-card h6 {
+    margin: 10px 0;
+    color: #333;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}

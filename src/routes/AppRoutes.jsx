@@ -15,13 +15,16 @@ import CourseDetails from "../Components/CourseDetails/CourseDetails";
 import AllTests from "../Admin/pages/tests/AllTests";
 import TestDetails from "../Admin/pages/tests/TestDetails";
 import Degrees from "../Components/Degrees/Degrees";
+import ViewDegrees from "../Components/DegreeManager";
+import AddDegreePage from "../Components/Degrees/dgree";
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* <Route path="/" index element={<Dashboard />} /> */}
       <Route index element={<Register />}></Route>
-      <Route path="login" element={<Login />}></Route>
+      <Route path="ViewDegrees" element={<ViewDegrees />}></Route>
+      <Route path="degree" element={<AddDegreePage />}></Route>
       <Route path="home" element={<Dashboard />}>
         <Route index element={<Home />}></Route>
         <Route path="profile" element={<Profile />}></Route>
@@ -34,7 +37,7 @@ const AppRoutes = () => {
       <Route path="/admin/chapter" element={<AddnewChapter />} />
       <Route path="/admin/degrees/new" element={<AddnewDegree />} />
       <Route path="/admin/degrees/edit" element={<EditDegree />} />
-      <Route path="/admin/users" element={< Allusers />} />
+     {/* <Route path="/admin/users" element={< Allusers />} /> */}
       <Route path="/admin/tests" element={< AllTests />} />
       <Route path="/admin/tests/details" element={< TestDetails />} />
     </Routes>
